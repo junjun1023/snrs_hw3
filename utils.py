@@ -2,13 +2,39 @@ import os
 import numpy as np
 import pandas as pd
 
-from functools import reduce
-
 
 def read_file(fpath):
         df = pd.read_csv(fpath, sep="\t", header=None)
         df.columns = ["cols_"+str(i) for i, a in enumerate(df.columns)]
         return df
+
+
+def group_by_id(df):
+        ret = df.groupby('cols_0')['cols_1'].apply(list)
+        return ret, len(np.unique(df.cols_1))
+
+
+def m2m_to_list(path, user_cnt):
+        import os
+        from tensorflow.python.keras.preprocessing.sequence import pad_sequences
+        group = read_file(path)
+        group, index = group_by_id(group)
+        group = group.to_dict()
+
+        for i in range(user_cnt):
+                if i+1 in group:
+                        pass
+                else:
+                        group[str(i+1)] = []
+
+        group_list = [item for key, item in group.items()]
+
+        group_length = np.array(list(map(len, group_list)))
+        group_max_len = max(group_length)
+
+        group_list = pad_sequences(group_list, maxlen=group_max_len, padding='post', )
+
+        return group_list, index, group_max_len
 
 
 def get_explicit_features(*awrgs):
