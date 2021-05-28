@@ -6,18 +6,13 @@ def cf_user_based(user_id, interact, similarity="cosine"):
 
         from sklearn.metrics.pairwise import cosine_similarity
         from scipy.stats import pearsonr
-
-
         """
         Compute rating predictions 
         ---
         Arg
         - interact: DataFrame
         - similarity: "cosine", "pearson"
-        Ret
-
         """
-
         assert similarity in ["cosine", "pearson"], "Similarity should be 'cosine' or 'pearson'."
 
         sim = 0
@@ -41,6 +36,45 @@ def cf_user_based(user_id, interact, similarity="cosine"):
         rat = rat / s
         return rat
 
+class CF():
+        def __init__(self, R):
+                self.R = R
+                self.user_cnt, self.item_cnt = R.shape[0], R.shape[1]
+                self.full = None
+
+        def train(self, similarity="cosine"):
+
+                from sklearn.metrics.pairwise import cosine_similarity
+                from scipy.stats import pearsonr
+                assert similarity in ["cosine", "pearson"], "Similarity should be 'cosine' or 'pearson'."
+
+                for i_index, user_i in enumerate(self.R):
+                        
+                        sim = 0
+                        rat = np.zeros(self.item_cnt)
+
+                        for j_index, user_j  in enumerate(self.R):
+                                if i_index == j_index:
+                                        continue
+                                
+                                s = 0
+                                if similarity == "cosine":
+                                        s = cosine_similarity(user_i.reshape(1, -1), user_j.reshape(1, -1))[0, 0]
+                                else:
+                                        s = pearsonr(user_i, user_j)[0]
+
+                                sim += s
+                                rat = user_j * s + rat
+
+                        sim += 1e-4
+                        rat = rat / sim
+                        if self.full is None:
+                                self.full = rat
+                        else:
+                                self.full = np.vstack((self.full, rat))
+
+        def get_rating(self, i, j):
+                return self.full[i-1, j-1]
 
 
 
@@ -73,7 +107,7 @@ class MF():
                 # Initialize the biases
                 self.b_u = np.zeros(self.num_users)
                 self.b_i = np.zeros(self.num_items)
-                self.b = np.mean(self.R[np.where(self.R != 0)])
+                self.b = np.mean(self.R[np.any(self.R > 0)])
 
                 # Create a list of training samples
                 self.samples = [

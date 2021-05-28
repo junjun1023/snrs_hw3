@@ -37,6 +37,14 @@ def m2m_to_list(path, user_cnt):
         return group_list, index, group_max_len
 
 
+
+def get_rep(csr):
+        csr = csr.toarray()
+        csr = np.delete(csr, 0, axis=1)
+        csr = np.delete(csr, 0, axis=0)
+        return csr
+
+
 def get_explicit_features(*awrgs):
         """
         awrgs: list of path
